@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* jednadvacet.org brand palette (orange primary). Layer CSS is not auto-merged,
+   so the same theme tokens are re-declared here to keep the shared look. */
+@theme static {
+  --color-orange-50: #fef3e6;
+  --color-orange-100: #fde8ce;
+  --color-orange-200: #fbd19d;
+  --color-orange-300: #faba6b;
+  --color-orange-400: #f8a23a;
+  --color-orange-500: #f68b09;
+  --color-orange-600: #c56f07;
+  --color-orange-700: #945405;
+  --color-orange-800: #623804;
+  --color-orange-900: #311c02;
+  --color-orange-950: #221401;
+}

@@ -8,6 +8,7 @@
     "dev": "nuxt dev --port 2109"
   },
   "dependencies": {
+    "@counterscale/tracker": "^3.4.1",
     "@iconify-json/simple-icons": "^1.2.74",
     "@nuxt/image": "^2.0.0",
     "@nuxt/ui": "^4.4.0",

@@ -55,6 +55,15 @@ export default defineNuxtConfig({
         if (typeof dirs[i] === 'string' && dirs[i]!.includes('.c12/')) dirs.splice(i, 1)
       }
     },
+    // The base layer ships its own counterscale.client.ts plugin; we replace it
+    // with a local copy that has a custom siteId.
+    'app:resolve'(app: { plugins: { src: string }[] }) {
+      for (let i = app.plugins.length - 1; i >= 0; i--) {
+        if (app.plugins[i]?.src?.includes('.c12/') && app.plugins[i]?.src?.includes('counterscale.client')) {
+          app.plugins.splice(i, 1)
+        }
+      }
+    },
     'prepare:types'(ctx: any) {
       const tsConfig = ctx?.tsConfig
       if (!tsConfig) return

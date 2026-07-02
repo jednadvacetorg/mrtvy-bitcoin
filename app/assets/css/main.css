@@ -15,4 +15,19 @@
   --color-orange-800: #623804;
   --color-orange-900: #311c02;
   --color-orange-950: #221401;
+
+  /* Serif (patkové) font used across the hero section. */
+  --font-serif: Georgia, "Times New Roman", Times, serif;
+}
+
+/* Solid black/white primary. `primary: 'black'` in app.config.ts is
+   unsupported (black has no 50-950 shades) and produces inverted component
+   colors, so the token is set directly here per Nuxt UI recommendations.
+   The dark override flips it to white for correct contrast in dark mode. */
+:root {
+  --ui-primary: black;
+}
+
+.dark {
+  --ui-primary: white;
 }

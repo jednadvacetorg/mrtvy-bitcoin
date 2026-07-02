@@ -1,16 +1,5 @@
 <template>
-  <UHeader :ui="{ center: 'gap-2' }">
-    <template #left>
-      <div />
-    </template>
-
-    <UNavigationMenu :items="menuItems" />
-
-    <template #body>
-      <UNavigationMenu :items="menuItems" orientation="vertical" class="-mx-2.5" />
-    </template>
-  </UHeader>
-
+  <!-- Navigation lives inside the hero (see pages/index.vue), so no header here. -->
   <UMain>
     <slot />
   </UMain>
@@ -40,29 +29,4 @@
   </UFooter>
 </template>
 
-<script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
 
-const menuItems: NavigationMenuItem[] = [
-  {
-    label: 'Kalkulačka',
-    description: 'Spočítej, kolik bys dnes měl, kdybys nakoupil při každém „úmrtí".',
-    icon: 'i-lucide-calculator',
-    to: '/#kalkulacka',
-  },
-  {
-    label: 'Bitcoin Brno',
-    description: 'Pravidelné srazy bitcoinové komunity v Brně.',
-    icon: 'i-lucide-map-pin',
-    to: 'https://bitcoinbrno.cz',
-    target: '_blank',
-  },
-  {
-    label: 'Jedenadvacet',
-    description: 'Blog, komunity a akce kolem Bitcoinu po celém Česku.',
-    icon: 'i-lucide-users',
-    to: 'https://jednadvacet.org',
-    target: '_blank',
-  },
-]
-</script>

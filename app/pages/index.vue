@@ -1,11 +1,36 @@
 <script setup lang="ts">
-import type { ButtonProps } from '@nuxt/ui'
+import type { NavigationMenuItem } from '@nuxt/ui'
 import type { ChartPoint } from '~/components/PriceChart.vue'
 import type { DeathEvent } from '#shared/utils/calculations'
 // Calc helpers and constants are auto-imported from shared/utils/calculations.ts
 const { data } = await useFetch('/api/data', { key: 'data' })
 
 const yearsTracking = getYearsTracking()
+
+// ── Navigation (rendered inside the hero) ────────────────────────────────────
+const menuOpen = ref(false)
+const menuItems: NavigationMenuItem[] = [
+  {
+    label: 'Kalkulačka',
+    description: 'Spočítej, kolik bys dnes měl, kdybys nakoupil při každém „úmrtí".',
+    icon: 'i-lucide-calculator',
+    to: '/#kalkulacka',
+  },
+  {
+    label: 'Bitcoin Brno',
+    description: 'Pravidelné srazy bitcoinové komunity v Brně.',
+    icon: 'i-lucide-map-pin',
+    to: 'https://bitcoinbrno.cz',
+    target: '_blank',
+  },
+  {
+    label: 'Jedenadvacet',
+    description: 'Blog, komunity a akce kolem Bitcoinu po celém Česku.',
+    icon: 'i-lucide-users',
+    to: 'https://jednadvacet.org',
+    target: '_blank',
+  },
+]
 
 // ── Chart + selected obituary ────────────────────────────────────────────────
 const chartPoints = computed<ChartPoint[]>(() => (data.value?.chartPoints ?? []) as ChartPoint[])
@@ -20,10 +45,6 @@ const selectedPoint = computed<ChartPoint | null>(() => {
 // ── Calculator mode ──────────────────────────────────────────────────────────
 type Mode = 'perDeath' | 'monthly'
 const mode = ref<Mode>('perDeath')
-const modeItems = [
-  { label: 'Za každé „úmrtí"', value: 'perDeath' as Mode },
-  { label: 'Jednou měsíčně', value: 'monthly' as Mode },
-]
 
 const periodYears = ref<number>(DEFAULT_DCA_PERIOD)
 const periodItems = DCA_PERIODS_YEARS.map((y) => ({
@@ -133,33 +154,6 @@ const btcAge = computed(() => {
 const BANK_OUTAGE_HOURS_MIN = 21
 const BANK_OUTAGE_HOURS_MAX = 92
 
-const brnoLinks: ButtonProps[] = [
-  {
-    label: 'bitcoinbrno.cz',
-    to: 'https://bitcoinbrno.cz',
-    target: '_blank',
-    color: 'primary',
-    size: 'lg',
-    trailingIcon: 'i-lucide-arrow-right',
-  },
-]
-const jednadvacetLinks: ButtonProps[] = [
-  {
-    label: 'jednadvacet.org',
-    to: 'https://jednadvacet.org',
-    target: '_blank',
-    color: 'primary',
-    size: 'lg',
-    trailingIcon: 'i-lucide-arrow-right',
-  },
-]
-
-const statusCards = [
-  { icon: 'i-lucide-zap', title: 'Běží nepřetržitě', text: 'Bitcoin funguje bez výpadku 24/7.' },
-  { icon: 'i-lucide-globe', title: 'Globální decentralizovaná síť', text: 'Neovládá ji žádná společnost ani stát.' },
-  { icon: 'i-lucide-trending-up', title: 'Aktivní vývoj', text: 'Bezpečnost i možnosti se stále zlepšují.' },
-]
-
 useSeoMeta({
   title: 'Bitcoin je mrtvý',
   description:
@@ -171,69 +165,108 @@ useSeoMeta({
 
 <template>
   <div>
-    <!-- Hero with gradient background + log-scale price chart -->
-    <section
-      class="relative overflow-hidden border-b border-default bg-gradient-to-b from-primary/15 via-primary/5 to-default"
-    >
-      <div
-        class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,var(--ui-primary)/12%,transparent)]"
-      />
-      <UContainer class="relative py-16 sm:py-20">
-        <div class="text-center max-w-3xl mx-auto">
-          <h1 class="text-4xl sm:text-6xl font-bold text-highlighted tracking-tight">
-            Bitcoin je mrtvý
-          </h1>
-          <p class="mt-4 text-lg text-muted">
-            Již {{ yearsTracking }} let sledujeme Bitcoin umírat
-          </p>
-          <div class="mt-6 flex justify-center">
-            <UBadge color="primary" variant="solid" size="xl" class="text-lg">
-              {{ data?.numberOfDeaths ?? '—' }}× prohlášen za mrtvý
-            </UBadge>
+    <!-- Hero: triple black border frame, serif text, log-scale price chart -->
+    <section class="font-serif px-1 py-8 sm:px-6 sm:py-10">
+      <!-- Outer border (~3px) -->
+      <div class="border-[3px] border-black p-0.5">
+        <!-- Middle border (~1px) -->
+        <div class="border border-black p-0.5">
+          <!-- Inner border (~1px) -->
+          <div class="relative overflow-hidden border border-black">
+            <!-- Top row: image (left) + navbar (right), no border/background, not fixed -->
+            <div class="flex items-start justify-between gap-4 px-5 pt-5 sm:px-8 sm:pt-8">
+              <!-- Image in the top-left corner; inverts in dark mode only -->
+              <NuxtImg
+                src="/images/parte-cross.webp"
+                alt=""
+                aria-hidden="true"
+                class="pointer-events-none w-10 shrink-0 select-none sm:w-18 dark:invert"
+              />
+
+              <!-- Desktop: menu expands on the right side -->
+              <UNavigationMenu :items="menuItems" class="hidden lg:flex" />
+
+              <!-- Mobile: only a burger, opens a slideover -->
+              <UButton
+                class="lg:hidden"
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-menu"
+                aria-label="Otevřít menu"
+                @click="menuOpen = true;"
+              />
+            </div>
+
+            <USlideover v-model:open="menuOpen" title="Menu">
+              <template #body>
+                <UNavigationMenu
+                  :items="menuItems"
+                  orientation="vertical"
+                  class="-mx-2.5"
+                  @select="menuOpen = false"
+                />
+              </template>
+            </USlideover>
+
+            <UContainer class="relative py-5 sm:py-10">
+              <div class="text-center max-w-3xl mx-auto">
+                <h1 class="text-4xl sm:text-6xl font-bold text-highlighted tracking-tight">
+                  Bitcoin je mrtvý
+                </h1>
+                <p class="mt-4 text-lg text-muted">
+                  Již {{ yearsTracking }} let sledujeme Bitcoin umírat
+                </p>
+                <div class="mt-6 flex justify-center">
+                  <UBadge color="primary" variant="solid" size="xl" class="text-lg font-serif">
+                    {{ data?.numberOfDeaths ?? '—' }}× prohlášen za mrtvý
+                  </UBadge>
+                </div>
+              </div>
+
+              <!-- Price chart + latest-death bubble (bottom part of the hero) -->
+              <div class="mt-12">
+                <ClientOnly>
+                  <div class="relative">
+                    <PriceChart v-model="selectedIndex" :points="chartPoints" />
+
+                    <!-- selected / latest obituary bubble -->
+                    <Transition
+                      enter-active-class="transition duration-200"
+                      enter-from-class="opacity-0 translate-y-1"
+                    >
+                      <UCard
+                        v-if="selectedPoint"
+                        :key="selectedPoint.slug"
+                        class="mt-4 sm:mt-0 sm:absolute sm:right-0 sm:-top-4 sm:max-w-xs bg-elevated/90 backdrop-blur ring-primary/30"
+                      >
+                        <p class="text-xs text-primary font-semibold uppercase tracking-wide">
+                          {{ selectedIndex === null ? 'Poslední předpověď smrti' : 'Předpověď smrti' }}
+                        </p>
+                        <p class="mt-1 text-sm text-highlighted font-medium line-clamp-3">
+                          „{{ selectedPoint.quote || selectedPoint.title }}"
+                        </p>
+                        <p class="mt-2 text-xs text-muted">
+                          {{ selectedPoint.person }} · {{ selectedPoint.publicationName }}
+                        </p>
+                        <p class="text-xs text-muted">
+                          {{ formatCzechDate(selectedPoint.date) }} ·
+                          cena tehdy {{ fmt(selectedPoint.priceCzk) }}
+                        </p>
+                      </UCard>
+                    </Transition>
+                  </div>
+                  <p class="mt-3 text-center text-xs text-muted">
+                    Logaritmická cenová křivka. Klikni na kterýkoli bod a přečti si tehdejší předpověď.
+                  </p>
+                  <template #fallback>
+                    <USkeleton class="h-80 w-full" />
+                  </template>
+                </ClientOnly>
+              </div>
+            </UContainer>
           </div>
         </div>
-
-        <!-- Price chart + latest-death bubble -->
-        <div class="mt-12">
-          <ClientOnly>
-            <div class="relative">
-              <PriceChart v-model="selectedIndex" :points="chartPoints" />
-
-              <!-- selected / latest obituary bubble -->
-              <Transition
-                enter-active-class="transition duration-200"
-                enter-from-class="opacity-0 translate-y-1"
-              >
-                <UCard
-                  v-if="selectedPoint"
-                  :key="selectedPoint.slug"
-                  class="mt-4 sm:mt-0 sm:absolute sm:right-0 sm:-top-4 sm:max-w-xs bg-elevated/90 backdrop-blur ring-primary/30"
-                >
-                  <p class="text-xs text-primary font-semibold uppercase tracking-wide">
-                    {{ selectedIndex === null ? 'Poslední předpověď smrti' : 'Předpověď smrti' }}
-                  </p>
-                  <p class="mt-1 text-sm text-highlighted font-medium line-clamp-3">
-                    „{{ selectedPoint.quote || selectedPoint.title }}"
-                  </p>
-                  <p class="mt-2 text-xs text-muted">
-                    {{ selectedPoint.person }} · {{ selectedPoint.publicationName }}
-                  </p>
-                  <p class="text-xs text-muted">
-                    {{ formatCzechDate(selectedPoint.date) }} ·
-                    cena tehdy {{ fmt(selectedPoint.priceCzk) }}
-                  </p>
-                </UCard>
-              </Transition>
-            </div>
-            <p class="mt-3 text-center text-xs text-muted">
-              Logaritmická cenová křivka. Klikni na kterýkoli bod a přečti si tehdejší předpověď.
-            </p>
-            <template #fallback>
-              <USkeleton class="h-80 w-full" />
-            </template>
-          </ClientOnly>
-        </div>
-      </UContainer>
+      </div>
     </section>
 
     <UContainer class="space-y-16 py-16">
@@ -247,7 +280,7 @@ useSeoMeta({
           <div class="space-y-6">
             <!-- mode switch -->
             <UTabs
-              :items="modeItems"
+              :items="[{ label: 'Za každé „úmrtí“', value: 'perDeath' }, { label: 'Jednou měsíčně', value: 'monthly' }]"
               :model-value="mode"
               @update:model-value="(v) => (mode = v as Mode)"
               :content="false"
@@ -354,10 +387,10 @@ useSeoMeta({
             <p class="text-xs text-muted">Od 3. ledna 2009</p>
           </UCard>
           <UCard>
-            <p class="text-sm text-muted">Hodin výpadku sítě za rok</p>
-            <p class="text-3xl font-bold text-primary tabular-nums">0</p>
+            <p class="text-sm text-muted">Výpadků bitcoinové sítě za rok:</p>
+            <p class="text-3xl font-bold text-primary tabular-nums">0 hodin</p>
             <div class="mt-3 rounded-lg bg-error/10 px-3 py-2">
-              <p class="text-xs text-muted">Průměrná česká banka pro srovnání</p>
+              <p class="text-xs text-muted">Průměrná česká banka pro srovnání:</p>
               <p class="text-xl font-bold text-error tabular-nums">
                 {{ BANK_OUTAGE_HOURS_MIN }}–{{ BANK_OUTAGE_HOURS_MAX }} hodin
               </p>
@@ -370,15 +403,31 @@ useSeoMeta({
       <!-- Current status -->
       <UPageSection
         :ui="{ container: 'py-0 gap-8' }"
-        title="Aktuální stav: Živý a aktivní"
       >
+        <template #title>
+          <div class="text-base">
+            Aktuální stav:
+          </div>
+          <span class="bg-green-500 rounded-full size-3 mb-1 mr-2 inline-block relative">
+            <span class="bg-green-500 rounded-full inline-block animate-ping inset-0 absolute" />
+          </span>
+          Živý a aktivní
+        </template>
         <UPageGrid>
           <UPageCard
-            v-for="card in statusCards"
-            :key="card.title"
-            :icon="card.icon"
-            :title="card.title"
-            :description="card.text"
+            icon="i-lucide-zap"
+            title="Běží nepřetržitě"
+            description="Bitcoin funguje bez výpadku 24/7."
+          />
+          <UPageCard
+            icon="i-lucide-globe"
+            title="Globální decentralizovaná síť"
+            description="Neovládá ji žádná společnost ani stát."
+          />
+          <UPageCard
+            icon="i-lucide-trending-up"
+            title="Aktivní vývoj"
+            description="Bezpečnost i možnosti se stále zlepšují."
           />
         </UPageGrid>
       </UPageSection>
@@ -390,7 +439,7 @@ useSeoMeta({
           variant="naked"
           title="Přijď na sraz v Brně"
           description="V Brně se pravidelně schází otevřená komunita kolem svobodného vzdělávání, peněz a života. Nemusíš Bitcoinu rozumět – přijď si hlavně popovídat a poznat lidi. Jsi vítán/vítána."
-          :links="brnoLinks"
+          :links="[{ label: 'bitcoinbrno.cz', to: 'https://bitcoinbrno.cz', target: '_blank', color: 'primary', size: 'lg', trailingIcon: 'i-lucide-arrow-right' }]"
           :ui="{
             root: 'relative isolate overflow-hidden rounded-xl ring ring-default',
             title: 'text-white',
@@ -414,7 +463,7 @@ useSeoMeta({
           variant="naked"
           title="Poznej komunitu po celém Česku"
           description="Blog, lokální komunity a akce kolem Bitcoinu, svobodných peněz a zdravého životního stylu. Najdi svoje lidi ve svém městě a přidej se."
-          :links="jednadvacetLinks"
+          :links="[{ label: 'jednadvacet.org', to: 'https://jednadvacet.org', target: '_blank', color: 'primary', size: 'lg', trailingIcon: 'i-lucide-arrow-right' }]"
           :ui="{
             root: 'relative isolate overflow-hidden rounded-xl ring ring-default',
             title: 'text-white',

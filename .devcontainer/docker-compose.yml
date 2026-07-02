@@ -9,4 +9,5 @@ services:
       - ..:/workspace
     environment:
       - OPENCODE_CONFIG=/workspace/.devcontainer/opencode-config.json
+      - XDG_DATA_HOME=/workspace/.devcontainer/data
     command: sleep infinity

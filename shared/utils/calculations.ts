@@ -117,6 +117,109 @@ export function scaleInvestmentResult(base: InvestmentResult, factor: number): I
   }
 }
 
+// ── Monthly (DCA) mode ───────────────────────────────────────────────────────
+
+export interface MonthlyInvestmentResult {
+  months: number
+  totalInvested: number
+  totalBtc: number
+  currentValue: number
+  roi: number
+}
+
+/** Supported DCA look-back periods in years (default 5). */
+export const DCA_PERIODS_YEARS = [17, 10, 5, 2] as const
+export type DcaPeriodYears = (typeof DCA_PERIODS_YEARS)[number]
+export const DEFAULT_DCA_PERIOD: DcaPeriodYears = 5
+
+/**
+ * Build a sorted (ascending) [timestamp, usdPrice] series from death events.
+ * Each death carries the BTC price on that day → usable as a sparse price history.
+ */
+export function buildPriceSeries(deaths: DeathEvent[]): { t: number; price: number }[] {
+  return deaths
+    .filter((d) => d.bitcoinPrice > 0)
+    .map((d) => ({ t: parseDate(d.date).getTime(), price: d.bitcoinPrice }))
+    .sort((a, b) => a.t - b.t)
+}
+
+/** Nearest known price at or before `t`; falls back to the earliest point. */
+export function priceAt(series: { t: number; price: number }[], t: number): number {
+  if (series.length === 0) return 0
+  let chosen = series[0]!
+  for (const p of series) {
+    if (p.t <= t) chosen = p
+    else break
+  }
+  return chosen.price
+}
+
+/**
+ * Simulate investing a fixed CZK amount once per month over the last `years`,
+ * buying BTC at the historical (nearest-known) price each month.
+ */
+export function calculateMonthlyInvestment(
+  deaths: DeathEvent[],
+  monthlyCzk: number,
+  years: number,
+  currentBtcPrice: number,
+  czkToUsd: number,
+  now: Date = new Date(),
+): MonthlyInvestmentResult {
+  const series = buildPriceSeries(deaths)
+  const months = Math.round(years * 12)
+  const monthlyUsd = monthlyCzk * czkToUsd
+
+  let totalBtc = 0
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const price = priceAt(series, d.getTime())
+    if (price > 0) totalBtc += monthlyUsd / price
+  }
+
+  const currentValueCzk = (totalBtc * currentBtcPrice) / czkToUsd
+  const totalInvested = months * monthlyCzk
+  const roi = totalInvested > 0 ? ((currentValueCzk - totalInvested) / totalInvested) * 100 : 0
+
+  return { months, totalInvested, totalBtc, currentValue: currentValueCzk, roi }
+}
+
+/**
+ * Cash-under-mattress counterfactual for the monthly DCA mode: deposit a fixed
+ * CZK amount each month over `years`, then discount to today's purchasing power.
+ */
+export function calculateMonthlyCashCounterfactual(
+  monthlyCzk: number,
+  years: number,
+  rates: Record<string, number>,
+  options: { estimateRate?: number; now?: Date } = {},
+): CashCounterfactualResult {
+  const estimateRate = options.estimateRate ?? 2.5
+  const now = options.now ?? new Date()
+
+  const cpi = buildCpiIndex(rates)
+  const tableYears = Object.keys(cpi).map(Number)
+  const minYear = Math.min(...tableYears)
+  const lastTableYear = Math.max(...tableYears)
+  const latestYear = Math.max(lastTableYear, now.getFullYear())
+  for (let y = lastTableYear + 1; y <= latestYear; y++) {
+    cpi[y] = cpi[y - 1]! * (1 + estimateRate / 100)
+  }
+  const cpiLatest = cpi[latestYear]!
+
+  const months = Math.round(years * 12)
+  let realValue = 0
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const clampedYear = Math.min(Math.max(d.getFullYear(), minYear), latestYear)
+    realValue += monthlyCzk * (cpi[clampedYear]! / cpiLatest)
+  }
+
+  const nominal = months * monthlyCzk
+  const lossPct = nominal > 0 ? ((realValue - nominal) / nominal) * 100 : 0
+  return { nominal, realValue, lossPct, latestYear }
+}
+
 /** Cumulative CPI index from annual inflation rates (%). Base = first year = 100. */
 export function buildCpiIndex(rates: Record<string, number>): Record<number, number> {
   const years = Object.keys(rates)

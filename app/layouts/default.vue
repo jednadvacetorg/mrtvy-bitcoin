@@ -1,16 +1,13 @@
 <template>
   <UHeader :ui="{ center: 'gap-2' }">
     <template #left>
-      <NuxtLink to="/" class="flex items-center gap-2 font-bold text-highlighted">
-        <span class="text-xl">💀</span>
-        <span>Bitcoin je mrtvý</span>
-      </NuxtLink>
+      <div />
     </template>
 
-    <template #right>
-      <UBadge v-if="priceLabel" color="primary" variant="subtle" size="sm">
-        1 BTC = {{ priceLabel }}
-      </UBadge>
+    <UNavigationMenu :items="menuItems" />
+
+    <template #body>
+      <UNavigationMenu :items="menuItems" orientation="vertical" class="-mx-2.5" />
     </template>
   </UHeader>
 
@@ -33,29 +30,39 @@
           <div>
             <p class="font-semibold text-highlighted mb-2">Projekt</p>
             <ul class="space-y-1">
-              <li><ULink to="https://github.com/adamkolekcz/bitcoinjemrtvy" target="_blank">Zdrojový kód (Adam Kolek)</ULink></li>
-              <li><ULink to="https://bitcoindeaths.com" target="_blank">Zdroj dat: Bitcoin Obituaries</ULink></li>
+              <li><ULink to="https://bitcoinbrno.cz" target="_blank">Komunita Bitcoin Brno</ULink></li>
               <li><ULink to="https://jednadvacet.org" target="_blank">Komunita Jednadvacet</ULink></li>
             </ul>
           </div>
         </div>
       </UContainer>
     </template>
-
-    <template #left>
-      <p class="text-sm text-muted">
-        Data & překlad © Adam Kolek ·
-        <ULink to="https://github.com/adamkolekcz/bitcoinjemrtvy/blob/main/LICENSE" target="_blank">MIT</ULink>
-        · UI ve stylu Jednadvacet
-      </p>
-    </template>
   </UFooter>
 </template>
 
 <script setup lang="ts">
-// formatCurrency is auto-imported from shared/utils/calculations.ts
-const { data } = await useFetch('/api/btc-price', { key: 'btc-price' })
-const priceLabel = computed(() =>
-  data.value?.priceCzk ? formatCurrency(Math.round(data.value.priceCzk)) : null,
-)
+import type { NavigationMenuItem } from '@nuxt/ui'
+
+const menuItems: NavigationMenuItem[] = [
+  {
+    label: 'Kalkulačka',
+    description: 'Spočítej, kolik bys dnes měl, kdybys nakoupil při každém „úmrtí".',
+    icon: 'i-lucide-calculator',
+    to: '/#kalkulacka',
+  },
+  {
+    label: 'Bitcoin Brno',
+    description: 'Pravidelné srazy bitcoinové komunity v Brně.',
+    icon: 'i-lucide-map-pin',
+    to: 'https://bitcoinbrno.cz',
+    target: '_blank',
+  },
+  {
+    label: 'Jedenadvacet',
+    description: 'Blog, komunity a akce kolem Bitcoinu po celém Česku.',
+    icon: 'i-lucide-users',
+    to: 'https://jednadvacet.org',
+    target: '_blank',
+  },
+]
 </script>

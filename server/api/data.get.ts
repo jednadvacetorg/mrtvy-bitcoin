@@ -33,9 +33,10 @@ export default defineEventHandler(async () => {
       priceCzk: d.bitcoinPrice * effectiveUsdToCzk,
       person: d.person,
       publicationName: d.publicationName,
+      jobTitle: d.jobTitle,
       title: d.articleTitle_cs || d.articleTitle,
       quote: d.quote_cs || d.quote || '',
-      slug: d.slug,
+      sourceUrl: d.sourceUrl || '',
     }))
     .sort((a, b) => a.t - b.t)
 

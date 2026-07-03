@@ -15,20 +15,28 @@ export interface DeathsData {
  */
 export const getDeathsData = defineCachedFunction(
   async (): Promise<DeathsData> => {
-    const [rawDeaths, translations, inflation] = await Promise.all([
+    const [rawDeaths, translations, inflation, sourceUrls] = await Promise.all([
       $fetch<DeathEvent[]>(`${RAW_BASE}/deaths.json`, { responseType: 'json' }),
       $fetch<TranslationMap>(`${RAW_BASE}/translations-cs.json`, { responseType: 'json' }),
       $fetch<{ rates: Record<string, number> }>(`${RAW_BASE}/inflation-cz.json`, { responseType: 'json' }),
+      $fetch<Record<string, string | null>>(`${RAW_BASE}/source-urls.json`, { responseType: 'json' })
+        .catch(() => ({}) as Record<string, string | null>),
     ])
 
-    const deaths = applyTranslations(rawDeaths, translations)
+    // Attach the original article URL (keyed by the upstream deaths.json `slug`).
+    const withSources = rawDeaths.map((d) => {
+      const url = sourceUrls?.[d.slug]
+      return url ? { ...d, sourceUrl: url } : d
+    })
+
+    const deaths = applyTranslations(withSources, translations)
     const inflationRates = inflation?.rates ?? {}
     return { deaths, inflationRates }
   },
   {
     name: 'deaths-data',
     maxAge: 60 * 60,
-    getKey: () => 'v2',
+    getKey: () => 'v3',
   },
 )
 

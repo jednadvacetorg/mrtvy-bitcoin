@@ -26,6 +26,7 @@
    The dark override flips it to white for correct contrast in dark mode. */
 :root {
   --ui-primary: black;
+  --ui-radius: 0;
 }
 
 .dark {

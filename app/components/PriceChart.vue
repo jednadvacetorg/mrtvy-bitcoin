@@ -6,9 +6,10 @@ export interface ChartPoint {
   priceCzk: number
   person: string
   publicationName: string
+  jobTitle?: string
   title: string
   quote: string
-  slug: string
+  sourceUrl?: string
 }
 
 const props = defineProps<{
@@ -23,7 +24,9 @@ const emit = defineEmits<{
 // ── Geometry ─────────────────────────────────────────────────────────────────
 const W = 1000
 const H = 320
-const PAD = { top: 24, right: 16, bottom: 24, left: 16 }
+const PAD = { top: 24, right: 16, bottom: 30, left: 16 }
+
+const svgRef = ref<SVGSVGElement | null>(null)
 
 const sorted = computed(() => props.points ?? [])
 
@@ -57,15 +60,6 @@ const linePath = computed(() => {
     .join(' ')
 })
 
-const areaPath = computed(() => {
-  const pts = sorted.value
-  if (pts.length === 0) return ''
-  const line = pts.map((p) => `L${xOf(p.t).toFixed(1)},${yOf(p.priceUsd).toFixed(1)}`).join(' ')
-  const first = pts[0]!
-  const last = pts[pts.length - 1]!
-  return `M${xOf(first.t).toFixed(1)},${(H - PAD.bottom).toFixed(1)} ${line.slice(1)} L${xOf(last.t).toFixed(1)},${(H - PAD.bottom).toFixed(1)} Z`
-})
-
 // Log-scale gridlines at each power of 10 inside the range.
 const gridLines = computed(() => {
   const { logMin, logMax } = bounds.value
@@ -77,6 +71,25 @@ const gridLines = computed(() => {
   return lines
 })
 
+// Year ticks along the x-axis, auto-thinned so labels don't overlap.
+const yearTicks = computed(() => {
+  const { tMin, tMax } = bounds.value
+  if (tMax <= tMin) return []
+  const firstYear = new Date(tMin).getUTCFullYear()
+  const lastYear = new Date(tMax).getUTCFullYear()
+  const years: number[] = []
+  for (let y = firstYear; y <= lastYear; y++) years.push(y)
+
+  // Estimate how many labels fit: ~40 viewBox units per "2026".
+  const avail = W - PAD.left - PAD.right
+  const maxLabels = Math.max(1, Math.floor(avail / 40))
+  const step = Math.max(1, Math.ceil(years.length / maxLabels))
+
+  return years
+    .filter((_, i) => i % step === 0)
+    .map((year) => ({ year, x: xOf(Date.UTC(year, 0, 1)) }))
+})
+
 const selected = computed({
   get: () => props.modelValue ?? sorted.value.length - 1,
   set: (i: number) => emit('update:modelValue', i),
@@ -85,24 +98,46 @@ const selected = computed({
 function select(i: number) {
   selected.value = i
 }
+
+// Pick the datapoint nearest to the pointer's x position.
+function pickNearest(e: PointerEvent | MouseEvent) {
+  const pts = sorted.value
+  const svg = svgRef.value
+  if (!svg || pts.length === 0) return
+  const rect = svg.getBoundingClientRect()
+  if (rect.width === 0) return
+  // preserveAspectRatio="none" → x scales purely by width.
+  const svgX = ((e.clientX - rect.left) / rect.width) * W
+
+  let bestIdx = 0
+  let bestDist = Infinity
+  for (let i = 0; i < pts.length; i++) {
+    const d = Math.abs(xOf(pts[i]!.t) - svgX)
+    if (d < bestDist) {
+      bestDist = d
+      bestIdx = i
+    }
+  }
+  if (bestIdx !== selected.value) select(bestIdx)
+}
+
+const selectedPoint = computed(() => sorted.value[selected.value] ?? null)
+// selectedPoint drives the in-chart vertical marker + dot highlight.
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="w-full text-black dark:text-white">
     <svg
+      ref="svgRef"
       :viewBox="`0 0 ${W} ${H}`"
       class="w-full h-auto select-none"
       preserveAspectRatio="none"
       role="img"
-      aria-label="Logaritmický graf ceny Bitcoinu s vyznačenými předpověďmi smrti"
+      aria-label="Logaritmický graf ceny Bitcoinu; přejeď kurzorem pro výběr nejbližší předpovědi smrti"
+      style="touch-action: none"
+      @pointermove="pickNearest"
+      @pointerdown="pickNearest"
     >
-      <defs>
-        <linearGradient id="priceArea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--ui-primary)" stop-opacity="0.35" />
-          <stop offset="100%" stop-color="var(--ui-primary)" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-
       <!-- log gridlines -->
       <g>
         <line
@@ -127,30 +162,47 @@ function select(i: number) {
         </text>
       </g>
 
-      <!-- price curve -->
-      <path :d="areaPath" fill="url(#priceArea)" />
-      <path :d="linePath" fill="none" stroke="var(--ui-primary)" stroke-width="2" />
+      <!-- year labels (x-axis) -->
+      <g>
+        <text
+          v-for="tick in yearTicks"
+          :key="tick.year"
+          :x="tick.x"
+          :y="H - 8"
+          text-anchor="middle"
+          class="fill-current text-[11px] opacity-50"
+        >
+          {{ tick.year }}
+        </text>
+      </g>
 
-      <!-- death bubbles -->
-      <g v-for="(p, i) in sorted" :key="p.slug">
+      <!-- vertical marker for the selected point -->
+      <line
+        v-if="selectedPoint"
+        :x1="xOf(selectedPoint.t)"
+        :x2="xOf(selectedPoint.t)"
+        :y1="PAD.top"
+        :y2="H - PAD.bottom"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-opacity="0.7"
+      />
+
+      <!-- price curve -->
+      <path :d="linePath" fill="none" stroke="currentColor" stroke-width="2" />
+
+      <!-- datapoints -->
+      <g class="pointer-events-none">
         <circle
+          v-for="(p, i) in sorted"
+          :key="p.t"
           :cx="xOf(p.t)"
           :cy="yOf(p.priceUsd)"
           :r="i === selected ? 6 : 3"
-          :fill="i === selected ? 'var(--ui-primary)' : 'var(--ui-bg)'"
-          stroke="var(--ui-primary)"
+          :fill="i === selected ? 'currentColor' : 'var(--ui-bg)'"
+          stroke="currentColor"
           :stroke-width="i === selected ? 2 : 1.5"
-          class="cursor-pointer transition-all"
-          @click="select(i)"
-        />
-        <!-- larger invisible hit target -->
-        <circle
-          :cx="xOf(p.t)"
-          :cy="yOf(p.priceUsd)"
-          r="10"
-          fill="transparent"
-          class="cursor-pointer"
-          @click="select(i)"
+          class="transition-all"
         />
       </g>
     </svg>

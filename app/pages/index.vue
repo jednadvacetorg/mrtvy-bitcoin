@@ -42,6 +42,21 @@ const selectedPoint = computed<ChartPoint | null>(() => {
   return pts[i] ?? pts[pts.length - 1] ?? null
 })
 
+// When the hovered point is on the right half of the chart, place the
+// card on the left so it doesn't cover the point being read.
+const cardOnLeft = computed(() => {
+  const pts = chartPoints.value
+  if (pts.length === 0) return false
+  const i = selectedIndex.value ?? pts.length - 1
+  return i >= pts.length / 2
+})
+
+// Full-text obituary popup (opened by clicking the bubble card).
+const detailOpen = ref(false)
+function openDetail() {
+  detailOpen.value = true
+}
+
 // ── Calculator mode ──────────────────────────────────────────────────────────
 type Mode = 'perDeath' | 'monthly'
 const mode = ref<Mode>('perDeath')
@@ -208,7 +223,7 @@ useSeoMeta({
               </template>
             </USlideover>
 
-            <UContainer class="relative py-5 sm:py-10">
+            <UContainer class="relative py-6 sm:py-10">
               <div class="text-center max-w-3xl mx-auto">
                 <h1 class="text-4xl sm:text-6xl font-bold text-highlighted tracking-tight">
                   Bitcoin je mrtvý
@@ -224,39 +239,93 @@ useSeoMeta({
               </div>
 
               <!-- Price chart + latest-death bubble (bottom part of the hero) -->
-              <div class="mt-12">
+              <div class="mt-14">
                 <ClientOnly>
                   <div class="relative">
                     <PriceChart v-model="selectedIndex" :points="chartPoints" />
 
                     <!-- selected / latest obituary bubble -->
                     <Transition
+                      mode="out-in"
                       enter-active-class="transition duration-200"
                       enter-from-class="opacity-0 translate-y-1"
                     >
-                      <UCard
+                      <UPageCard
                         v-if="selectedPoint"
-                        :key="selectedPoint.slug"
-                        class="mt-4 sm:mt-0 sm:absolute sm:right-0 sm:-top-4 sm:max-w-xs bg-elevated/90 backdrop-blur ring-primary/30"
+                        :key="selectedPoint.t"
+                        role="button"
+                        tabindex="0"
+                        :class="[
+                          'group mt-4 sm:mt-0 sm:absolute sm:-top-4 sm:max-w-xs cursor-pointer',
+                          cardOnLeft ? 'sm:left-0' : 'sm:right-0',
+                        ]"
+                        :ui="{ root: 'bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-900 rounded-none ring-1 ring-black dark:ring-white' }"
+                        @click="openDetail"
+                        @keydown.enter="openDetail"
+                        @keydown.space.prevent="openDetail"
                       >
-                        <p class="text-xs text-primary font-semibold uppercase tracking-wide">
-                          {{ selectedIndex === null ? 'Poslední předpověď smrti' : 'Předpověď smrti' }}
-                        </p>
+                        <div class="flex items-start justify-between gap-2">
+                          <p class="text-xs text-primary font-semibold uppercase tracking-wide">
+                            {{ selectedIndex === null ? 'Poslední předpověď smrti' : 'Předpověď smrti' }}
+                          </p>
+                          <span class="text-xs text-muted whitespace-nowrap">
+                            {{ formatCzechDate(selectedPoint.date) }}
+                          </span>
+                        </div>
                         <p class="mt-1 text-sm text-highlighted font-medium line-clamp-3">
                           „{{ selectedPoint.quote || selectedPoint.title }}"
                         </p>
                         <p class="mt-2 text-xs text-muted">
                           {{ selectedPoint.person }} · {{ selectedPoint.publicationName }}
                         </p>
-                        <p class="text-xs text-muted">
-                          {{ formatCzechDate(selectedPoint.date) }} ·
-                          cena tehdy {{ fmt(selectedPoint.priceCzk) }}
-                        </p>
-                      </UCard>
+                        <div class="flex items-center justify-between gap-2">
+                          <p class="text-xs text-muted">
+                            cena tehdy {{ fmt(selectedPoint.priceCzk) }}
+                          </p>
+                          <span class="text-xs text-primary font-semibold underline whitespace-nowrap group-hover:no-underline">
+                            celý text
+                          </span>
+                        </div>
+                      </UPageCard>
                     </Transition>
+
+                    <!-- Full-text obituary popup -->
+                    <UModal
+                      v-model:open="detailOpen"
+                      :title="selectedPoint?.person"
+                      :description="selectedPoint ? `${selectedPoint.jobTitle ? selectedPoint.jobTitle + ' · ' : ''}${selectedPoint.publicationName} · ${formatCzechDate(selectedPoint.date)}` : ''"
+                    >
+                      <template #body>
+                        <div v-if="selectedPoint" class="space-y-4">
+                          <p class="text-xs text-primary font-semibold uppercase tracking-wide">
+                            {{ selectedIndex === null ? 'Poslední předpověď smrti' : 'Předpověď smrti' }}
+                          </p>
+                          <p class="text-base text-highlighted font-medium leading-relaxed">
+                            „{{ selectedPoint.quote || selectedPoint.title }}"
+                          </p>
+                          <p class="text-sm text-muted">
+                            {{ selectedPoint.title }}
+                          </p>
+                          <p class="text-sm text-muted">
+                            Cena Bitcoinu tehdy: <span class="font-semibold text-highlighted">{{ fmt(selectedPoint.priceCzk) }}</span>
+                          </p>
+                          <UButton
+                            v-if="selectedPoint.sourceUrl"
+                            :to="selectedPoint.sourceUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            trailing-icon="i-lucide-external-link"
+                            color="primary"
+                            variant="subtle"
+                          >
+                            Číst originální článek
+                          </UButton>
+                        </div>
+                      </template>
+                    </UModal>
                   </div>
                   <p class="mt-3 text-center text-xs text-muted">
-                    Logaritmická cenová křivka. Klikni na kterýkoli bod a přečti si tehdejší předpověď.
+                    Logaritmická cenová křivka. Přejeď kurzorem nad grafem a čti tehdejší předpověď.
                   </p>
                   <template #fallback>
                     <USkeleton class="h-80 w-full" />

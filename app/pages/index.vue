@@ -191,11 +191,11 @@ useSeoMeta({
             <!-- Top row: image (left) + navbar (right), no border/background, not fixed -->
             <div class="flex items-start justify-between gap-4 px-5 pt-5 sm:px-8 sm:pt-8">
               <!-- Image in the top-left corner; inverts in dark mode only -->
-              <NuxtImg
+              <img
                 src="/images/parte-cross.webp"
                 alt=""
                 aria-hidden="true"
-                class="pointer-events-none w-10 shrink-0 select-none sm:w-18 dark:invert"
+                class="pointer-events-none w-20 shrink-0 select-none sm:w-40 dark:invert"
               />
 
               <!-- Desktop: menu expands on the right side -->

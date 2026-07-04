@@ -19,6 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [index: number]
+  open: []
 }>()
 
 // ── Geometry ─────────────────────────────────────────────────────────────────
@@ -121,6 +122,13 @@ function pickNearest(e: PointerEvent | MouseEvent) {
   if (bestIdx !== selected.value) select(bestIdx)
 }
 
+// Pointer down: always select the nearest point. On a real mouse click,
+// also open the article popup. Touch taps and pen taps only select.
+function onPointerDown(e: PointerEvent) {
+  pickNearest(e)
+  if (e.pointerType === 'mouse') emit('open')
+}
+
 const selectedPoint = computed(() => sorted.value[selected.value] ?? null)
 // selectedPoint drives the in-chart vertical marker + dot highlight.
 </script>
@@ -130,13 +138,13 @@ const selectedPoint = computed(() => sorted.value[selected.value] ?? null)
     <svg
       ref="svgRef"
       :viewBox="`0 0 ${W} ${H}`"
-      class="w-full h-auto select-none"
+      class="w-full h-auto select-none cursor-pointer"
       preserveAspectRatio="none"
       role="img"
-      aria-label="Logaritmický graf ceny Bitcoinu; přejeď kurzorem pro výběr nejbližší předpovědi smrti"
+      aria-label="Logaritmický graf ceny Bitcoinu; přejeď kurzorem pro výběr nejbližší předpovědi smrti, klikni pro zobrazení článku"
       style="touch-action: none"
       @pointermove="pickNearest"
-      @pointerdown="pickNearest"
+      @pointerdown="onPointerDown"
     >
       <!-- log gridlines -->
       <g>

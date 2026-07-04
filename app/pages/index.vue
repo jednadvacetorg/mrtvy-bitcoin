@@ -242,7 +242,7 @@ useSeoMeta({
               <div class="mt-14">
                 <ClientOnly>
                   <div class="relative">
-                    <PriceChart v-model="selectedIndex" :points="chartPoints" />
+                    <PriceChart v-model="selectedIndex" :points="chartPoints" @open="openDetail" />
 
                     <!-- selected / latest obituary bubble -->
                     <Transition

@@ -183,11 +183,11 @@ useSeoMeta({
     <!-- Hero: triple black border frame, serif text, log-scale price chart -->
     <section class="font-serif px-1 py-8 sm:px-6 sm:py-10">
       <!-- Outer border (~3px) -->
-      <div class="border-[3px] border-black p-0.5">
+      <div class="border-[3px] border-black dark:border-white p-0.5">
         <!-- Middle border (~1px) -->
-        <div class="border border-black p-0.5">
+        <div class="border border-black dark:border-white p-0.5">
           <!-- Inner border (~1px) -->
-          <div class="relative overflow-hidden border border-black">
+          <div class="relative overflow-hidden border border-black dark:border-white">
             <!-- Top row: image (left) + navbar (right), no border/background, not fixed -->
             <div class="flex items-start justify-between gap-4 px-5 pt-5 sm:px-8 sm:pt-8">
               <!-- Image in the top-left corner; inverts in dark mode only -->

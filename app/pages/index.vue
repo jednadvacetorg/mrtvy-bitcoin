@@ -599,7 +599,7 @@ useSeoMeta({
           <p class="mt-2">
             Tuto verzi a kampaň v Brně vytvořili
             <a href="https://honza.poboril.cz" target="_blank" class="underline">Honza</a>,
-            <a href="https://www.nogoodkid.com" target="_blank" class="underline">Nogoodkid</a> a
+            <a href="https://www.nogoodkid.com" target="_blank" class="underline">No Good Kid</a> a
             <a href="https://nktrjsk.cz" target="_blank" class="underline">Nikita</a>.
           </p>
         </template>

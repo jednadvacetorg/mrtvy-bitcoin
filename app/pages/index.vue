@@ -551,6 +551,11 @@ useSeoMeta({
         </UPageCTA>
       </div>
 
+      <!-- Partners -->
+      <UPageSection :ui="{ container: 'py-0 gap-8' }" title="Partneři Jednadvacet" description="Nákupem přes tyto odkazy podpoříč Jednadvacítku. Děkujem.">
+        <PartnersList />
+      </UPageSection>
+
       <!-- Links to original site -->
       <div class="flex flex-wrap justify-center gap-3">
         <UButton

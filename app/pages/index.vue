@@ -552,7 +552,7 @@ useSeoMeta({
       </div>
 
       <!-- Partners -->
-      <UPageSection :ui="{ container: 'py-0 gap-8' }" title="Partneři Jednadvacet" description="Nákupem přes tyto odkazy podpoříč Jednadvacítku. Děkujem.">
+      <UPageSection :ui="{ container: 'py-0 gap-8' }" title="Partneři Jednadvacet" description="Nákupem přes tyto odkazy podpoříš Jednadvacítku. Děkujem.">
         <PartnersList />
       </UPageSection>
 
